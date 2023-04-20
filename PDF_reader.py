@@ -1,5 +1,7 @@
+import os
 import urllib.request
 
+import PyPDF2
 import PyPDF2 as pdf
 from typing import Union, Optional, BinaryIO, IO
 import pathlib
@@ -22,6 +24,11 @@ class PDF:
         else:
             self.f = path
             self.file = pdf.PdfReader(self.f, password=password)
+
+        if self.file.is_encrypted:
+            self.file.decrypt(password)
+
+        self.writer = PyPDF2.PdfWriter(self.f)
 
         self.pages = self.file.pages
         self.number_of_pages = len(self.pages)
@@ -46,9 +53,10 @@ class PDF:
         page = self.file.pages[page - 1]
         return page.extract_text()
 
-    def write_page(self, page: int = 1) -> None:
+    def add_page(self, page: int = 1, text: str = None) -> None:
         page = self.file.pages[page - 1]
-        return None
+        self.writer.add_page(page, text.encode("utf-8"))
+        return
 
     def save_page_images(self, page: int = 1, path: Union[str, pathlib.Path] = None) -> None:
         if not path:
@@ -70,6 +78,10 @@ class PDF:
             res.append(str(i.data))
 
         return res
+
+    def save_pdf(self, path: os.PathLike = "PDF.pdf"):
+        with open(path, "wb") as f:
+            self.writer.write(f)
 
     def close(self):
         self.f.close()
@@ -93,5 +105,7 @@ class PDF:
 
 if __name__ == '__main__':
     file = open(r"C:\Users\13579\Downloads\dummy.pdf", "rb")
-    pdf = PDF(r"C:\Users\13579\Downloads\Telegram Desktop\Грокаем алгоритмы ( PDFDrive ).pdf", url_open=False)
-    print(pdf.save_page_images(22))
+    pdf = PDF(file, url_open=False)
+    print(pdf.get_page_text(1))
+    print(pdf.add_page(1, "Hello world!"))
+    print(pdf.save_pdf())
